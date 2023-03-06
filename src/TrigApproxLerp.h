@@ -6,6 +6,8 @@
 
 #ifndef LERP_H
 #define LERP_H
-float calcSin(float angle);
-float approxSin(float angle);
+double calcSin(float angle);
+void populateLookupTable(int incrementer, float threshold, float decrementer);
+double approxSin(float angle);
+void addValue(double ***old_array, double degree, double sin, int *rows);
 #endif
