@@ -6,7 +6,7 @@
 
 #include "TrigApproxLERP.h"
 
-#define PLTdefault(...) populateLookupTable(0.01, 0.01, 0.005)
+#define PLTdefault(...) populateLookupTable(0.001, 0.001, 0.001)
 
 double calcSin(double angle) {
     return sin(angle * (M_PI / 180));
@@ -25,36 +25,6 @@ void addValue(double ***old_array, double degree, double sin, int *rows) {
     *old_array = realloc(*old_array, *rows * sizeof(double *));
     (*old_array)[*rows - 1] = malloc(2 * sizeof(double));
     memcpy((*old_array)[*rows - 1], new_row, 2 * sizeof(double));
-}
-
-double lookup(double **arr, double angle) {
-    angle = (int)angle % 360 + (angle - (int)angle);
-    int negate = 0;
-    if (angle < 0)
-        angle = 360 + angle;
-    if (angle > 90 && angle <= 180) {
-        angle = 180 - angle;
-    } else if (angle > 180 && angle <= 270) {
-        angle = angle - 180;
-        negate = 1;
-    } else if (angle > 270 && angle < 360) {
-        angle = 360 - angle;
-        negate = 1;
-    }
-    if (angle == 90)
-        return 1;
-    if (angle == 0)
-        return 0;
-    int len = 0;
-    while (arr[len] != NULL && arr[len][0] < angle) {
-        len++;
-    }
-    if (fabs(arr[len - 1][0] - angle) < 1E-5) {
-        return arr[len - 1][1];
-    }
-    double slope = (arr[len][1] - arr[len - 1][1]) / (arr[len][0] - arr[len - 1][0]);
-    double answer = negate ? -1 * arr[len - 1][1] + (slope * (angle - arr[len][0])) : arr[len - 1][1] + (slope * (angle - arr[len][0]));
-    return answer;
 }
 
 double **populateLookupTable(double incrementer, double decrementer, double threshold) {
@@ -82,6 +52,58 @@ double **populateLookupTable(double incrementer, double decrementer, double thre
     return arr;
 };
 
+double lookup(double **arr, double angle) {
+    angle = (int)angle % 360 + (angle - (int)angle);
+    int negate = 0;
+    if (angle < 0)
+        angle = 360 + angle;
+    if (angle > 90 && angle <= 180) {
+        angle = 180 - angle;
+    } else if (angle > 180 && angle <= 270) {
+        angle = angle - 180;
+        negate = 1;
+    } else if (angle > 270 && angle < 360) {
+        angle = 360 - angle;
+        negate = 1;
+    }
+    if (angle == 90)
+        return 1;
+    if (angle == 0)
+        return 0;
+    int len = 0;
+    while (arr[len] != NULL && arr[len][0] < angle) {
+        len++;
+    }
+    if (fabs(arr[len][0] - angle) < 1E-5) {
+        return negate ? -1 * arr[len][1] : arr[len][1];
+    }
+    double slope = (arr[len][1] - arr[len - 1][1]) / (arr[len][0] - arr[len - 1][0]);
+    double answer = negate ? -1 * (arr[len - 1][1] + (slope * (angle - arr[len - 1][0]))) : arr[len - 1][1] + (slope * (angle - arr[len - 1][0]));
+    return answer;
+}
+
+double lookupInvSin(double **arr, double sin) {
+    int len = 0;
+    int negate = 0;
+    if (sin < 0) {
+        negate = 1;
+        sin = 0 - sin;
+    }
+    while (arr[len] != NULL && arr[len][1] < sin) {
+        len++;
+    }
+    if (arr[len][1] - sin < 1E-5) {
+        if (negate) {
+            return 360 - arr[len][0];
+        } else {
+            return arr[len][0];
+        }
+    }
+    double slope = (arr[len][0] - arr[len - 1][0]) / (arr[len][1] - arr[len - 1][1]);
+    double answer = negate ? 360 - (arr[len - 1][0] + (slope * (sin - arr[len - 1][1]))) : arr[len - 1][0] + (slope * (sin - arr[len - 1][1]));
+    return answer;
+}
+
 double approxSin(double angle) {
     double **arr = PLTdefault();
     return lookup(arr, angle);
@@ -92,12 +114,35 @@ double approxSinCustom(double angle, double incrementer, double decrementer, dou
     return lookup(arr, angle);
 }
 
+double approxSinWithTable(double **arr, double angle) {
+    return lookup(arr, angle);
+}
+
+double approxInvSin(double angle) {
+    assert(angle >= -1 && angle <= 1);
+    double **arr = PLTdefault();
+    return lookupInvSin(arr, angle);
+}
+
 double approxCos(double angle) {
     return approxSin(angle + 90);
 }
 
 double approxCosCustom(double angle, double incrementer, double decrementer, double threshold) {
     return approxSinCustom(angle + 90, incrementer, decrementer, threshold);
+}
+
+double approxCosWithTable(double **arr, double angle) {
+    return approxSinWithTable(arr, angle + 90);
+}
+
+double approxInvCos(double angle) {
+    assert(angle >= -1 && angle <= 1);
+    double answer = 90 - approxInvSin(angle);
+    if (answer < 0)
+        answer = 360 - (0 - answer);
+    printf("%f\n", answer);
+    return answer;
 }
 
 double approxTan(double angle) {
@@ -109,5 +154,19 @@ double approxTan(double angle) {
 double approxTanCustom(double angle, double incrementer, double decrementer, double threshold) {
     double cos = approxCosCustom(angle, incrementer, decrementer, threshold);
     assert(fabs(cos) != 0);
-    return approxSinCustom(angle, incrementer, decrementer, threshold) / approxCosCustom(angle, incrementer, decrementer, threshold);
+    return approxSinCustom(angle, incrementer, decrementer, threshold) / cos;
+}
+
+double approxTanWithTable(double **arr, double angle) {
+    double cos = approxCosWithTable(arr, angle);
+    assert(fabs(cos) != 0);
+    return approxSinWithTable(arr, angle) / cos;
+}
+
+double approxInvTan(double angle) {
+    double answer = approxInvSin(angle / sqrt(1 + angle * angle));
+    if (answer < 0)
+        answer = 360 - (0 - answer);
+    printf("%f\n", answer);
+    return answer;
 }
