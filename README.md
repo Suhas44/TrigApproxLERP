@@ -74,7 +74,7 @@ double approxInvTanWithTable(double **arr, double angle);
 approxSin(60) 
 ```
 ```c
-approxInvCosCustom(1/sqrt(2), 0.01, 0.05, 0.007) // 0.07 represents a 0.7% accuracy threshold
+approxInvCosCustom(1/sqrt(2), 0.01, 0.05, 0.007) // 0.007 represents a 0.7% accuracy threshold
 ```
 
 ### Multiple Use
@@ -87,10 +87,8 @@ When calculating multiple values, it is most efficient to generate a lookup tabl
 <br>
 ## Notes
 
-1. <math.h>'s built-in sin() function was used to generate the lookup table. In the real world, the lookup table would be generated before the program starts and the library would only use the table to calculate values.
+1. <math.h>'s built-in sin() function was used to populate lookup tables. For lookup table values to persist across program loads, they should be generated before the program starts and saved to a file with read/write access.
 
-
-2. This library is not optimized for speed, and is only intended for demonstration purposes. It is not recommended to use this library for any serious applications.
 <br>
 
-### Authored by [Suhas Guddeti](https://github.com/Suhas44)
+### Authored by [Suhas Guddeti](https://www.suhasg.com/)

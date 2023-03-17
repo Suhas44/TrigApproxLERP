@@ -129,11 +129,13 @@ double approxInvSin(double ratio) {
 }
 
 double approxInvSinCustom(double ratio, double incrementer, double decrementer, double threshold) {
+    assert(ratio >= -1 && ratio <= 1);
     double **arr = populateLookupTable(incrementer, threshold, decrementer);
     return lookupInv(arr, ratio);
 }
 
 double approxInvSinWithTable(double **arr, double ratio) {
+    assert(ratio >= -1 && ratio <= 1);
     return lookupInv(arr, ratio);
 }
 
@@ -192,6 +194,7 @@ double approxTanWithTable(double **arr, double angle) {
 }
 
 double approxInvTan(double ratio) {
+    assert(ratio >= -1 && ratio <= 1);
     double answer = approxInvSin(ratio / sqrt(1 + ratio * ratio));
     if (answer < 0)
         answer = 360 - (0 - answer);
@@ -199,6 +202,7 @@ double approxInvTan(double ratio) {
 }
 
 double approxInvTanCustom(double ratio, double incrementer, double decrementer, double threshold) {
+    assert(ratio >= -1 && ratio <= 1);
     double answer = approxInvSinCustom(ratio / sqrt(1 + ratio * ratio), incrementer, decrementer, threshold);
     if (answer < 0)
         answer = 360 - (0 - answer);
@@ -206,6 +210,7 @@ double approxInvTanCustom(double ratio, double incrementer, double decrementer, 
 }
 
 double approxInvTanWithTable(double **arr, double ratio) {
+    assert(ratio >= -1 && ratio <= 1);
     double answer = approxInvSinWithTable(arr, ratio / sqrt(1 + ratio * ratio));
     if (answer < 0)
         answer = 360 - (0 - answer);
