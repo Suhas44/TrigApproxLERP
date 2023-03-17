@@ -6,7 +6,7 @@
 
 #include "TrigApproxLERP.h"
 
-#define PLTdefault(...) populateLookupTable(0.001, 0.001, 0.001)
+#define PLTdefault(...) populateLookupTable(0.02, 0.01, 0.01)
 
 double calcSin(double angle) {
     return sin(angle * (M_PI / 180));
@@ -34,6 +34,14 @@ double **populateLookupTable(double incrementer, double decrementer, double thre
     addValue(&arr, 0, 0, &rows);
     if (incrementer > 30) {
         printf("WARNING: The incrementer will be too large to produce meaningful values between 0 and %f. Please decrease the incrementer to less than 30!\n", incrementer);
+        exit(1);
+    }
+    if (decrementer >= incrementer) {
+        printf("WARNING: The decrementer will be larger than the incrementer. Please decrease the decrementer to less than the incrementer!\n");
+        exit(1);
+    }
+    if (threshold >= 1 || threshold <= 0) {
+        printf("WARNING: The threshold must be between 0 and 1. Please enter a valid threshold!\n");
         exit(1);
     }
     addValue(&arr, incrementer, calcSin(incrementer), &rows);
@@ -66,10 +74,6 @@ double lookup(double **arr, double angle) {
         angle = 360 - angle;
         negate = 1;
     }
-    if (angle == 90)
-        return 1;
-    if (angle == 0)
-        return 0;
     int len = 0;
     while (arr[len] != NULL && arr[len][0] < angle) {
         len++;
@@ -82,17 +86,17 @@ double lookup(double **arr, double angle) {
     return answer;
 }
 
-double lookupInvSin(double **arr, double sin) {
+double lookupInv(double **arr, double ratio) {
     int len = 0;
     int negate = 0;
-    if (sin < 0) {
+    if (ratio < 0) {
         negate = 1;
-        sin = 0 - sin;
+        ratio = 0 - ratio;
     }
-    while (arr[len] != NULL && arr[len][1] < sin) {
+    while (arr[len] != NULL && arr[len][1] < ratio) {
         len++;
     }
-    if (arr[len][1] - sin < 1E-5) {
+    if (arr[len][1] - ratio < 1E-5) {
         if (negate) {
             return 360 - arr[len][0];
         } else {
@@ -100,7 +104,7 @@ double lookupInvSin(double **arr, double sin) {
         }
     }
     double slope = (arr[len][0] - arr[len - 1][0]) / (arr[len][1] - arr[len - 1][1]);
-    double answer = negate ? 360 - (arr[len - 1][0] + (slope * (sin - arr[len - 1][1]))) : arr[len - 1][0] + (slope * (sin - arr[len - 1][1]));
+    double answer = negate ? 360 - (arr[len - 1][0] + (slope * (ratio - arr[len - 1][1]))) : arr[len - 1][0] + (slope * (ratio - arr[len - 1][1]));
     return answer;
 }
 
@@ -118,10 +122,19 @@ double approxSinWithTable(double **arr, double angle) {
     return lookup(arr, angle);
 }
 
-double approxInvSin(double angle) {
-    assert(angle >= -1 && angle <= 1);
+double approxInvSin(double ratio) {
+    assert(ratio >= -1 && ratio <= 1);
     double **arr = PLTdefault();
-    return lookupInvSin(arr, angle);
+    return lookupInv(arr, ratio);
+}
+
+double approxInvSinCustom(double ratio, double incrementer, double decrementer, double threshold) {
+    double **arr = populateLookupTable(incrementer, threshold, decrementer);
+    return lookupInv(arr, ratio);
+}
+
+double approxInvSinWithTable(double **arr, double ratio) {
+    return lookupInv(arr, ratio);
 }
 
 double approxCos(double angle) {
@@ -136,12 +149,27 @@ double approxCosWithTable(double **arr, double angle) {
     return approxSinWithTable(arr, angle + 90);
 }
 
-double approxInvCos(double angle) {
-    assert(angle >= -1 && angle <= 1);
-    double answer = 90 - approxInvSin(angle);
+double approxInvCos(double ratio) {
+    assert(ratio >= -1 && ratio <= 1);
+    double answer = 90 - approxInvSin(ratio);
     if (answer < 0)
         answer = 360 - (0 - answer);
-    printf("%f\n", answer);
+    return answer;
+}
+
+double approxInvCosCustom(double ratio, double incrementer, double decrementer, double threshold) {
+    assert(ratio >= -1 && ratio <= 1);
+    double answer = 90 - approxInvSinCustom(ratio, incrementer, decrementer, threshold);
+    if (answer < 0)
+        answer = 360 - (0 - answer);
+    return answer;
+}
+
+double approxInvCosWithTable(double **arr, double ratio) {
+    assert(ratio >= -1 && ratio <= 1);
+    double answer = 90 - approxInvSinWithTable(arr, ratio);
+    if (answer < 0)
+        answer = 360 - (0 - answer);
     return answer;
 }
 
@@ -163,10 +191,23 @@ double approxTanWithTable(double **arr, double angle) {
     return approxSinWithTable(arr, angle) / cos;
 }
 
-double approxInvTan(double angle) {
-    double answer = approxInvSin(angle / sqrt(1 + angle * angle));
+double approxInvTan(double ratio) {
+    double answer = approxInvSin(ratio / sqrt(1 + ratio * ratio));
     if (answer < 0)
         answer = 360 - (0 - answer);
-    printf("%f\n", answer);
+    return answer;
+}
+
+double approxInvTanCustom(double ratio, double incrementer, double decrementer, double threshold) {
+    double answer = approxInvSinCustom(ratio / sqrt(1 + ratio * ratio), incrementer, decrementer, threshold);
+    if (answer < 0)
+        answer = 360 - (0 - answer);
+    return answer;
+}
+
+double approxInvTanWithTable(double **arr, double ratio) {
+    double answer = approxInvSinWithTable(arr, ratio / sqrt(1 + ratio * ratio));
+    if (answer < 0)
+        answer = 360 - (0 - answer);
     return answer;
 }
